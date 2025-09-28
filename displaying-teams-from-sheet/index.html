@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MVA Teams Without Consent</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h1 {
+      text-align: center;
+      color: #b30000;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .team-card {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background-color: #fef2f2;
+    }
+    .team-card p {
+      margin: 5px 0;
+      font-size: 16px;
+    }
+    .team-card strong {
+      color: #555;
+    }
+    .team-card ol {
+      margin: 5px 0 0 20px;
+      padding: 0;
+    }
+
+     img.logo {
+      width: 50px;
+      height: 50px;
+    }
+
+        header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      color: #064e3b;
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+      flex: 1;
+    }
+    .home-link {
+      font-size: 0.9rem;
+      text-decoration: none;
+      color: #064e3b;
+      background-color: #facc15;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    }
+    .home-link:hover {
+      background-color: #eab308;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="../index.html" class="home-link">Home</a>
+     
+      <h1>MVA Teams</h1>
+    </header>
+    <p id="loading-message">Checking data...</p>
+    <div id="teams-container"></div>
+  </div>
+
+  <script>
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS8PD9DkRa0NwKBOOrsK2k-zqnHr1sJiRSoaOCe5-3i459Wlre55Ysvx3kEUTFDQW2ln0eTGTnehQRw/pub?gid=1001005212&single=true&output=csv';
+    const teamsContainer = document.getElementById('teams-container');
+    const loadingMessage = document.getElementById('loading-message');
+
+    function parseCSV(text) {
+      const rows = [];
+      let currentRow = [];
+      let currentCell = '';
+      let insideQuotes = false;
+
+      for (let char of text) {
+        if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === ',' && !insideQuotes) {
+          currentRow.push(currentCell.trim());
+          currentCell = '';
+        } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+          if (currentCell || currentRow.length) {
+            currentRow.push(currentCell.trim());
+            rows.push(currentRow);
+            currentRow = [];
+            currentCell = '';
+          }
+        } else {
+          currentCell += char;
+        }
+      }
+      if (currentCell || currentRow.length) {
+        currentRow.push(currentCell.trim());
+        rows.push(currentRow);
+      }
+      return rows;
+    }
+
+    async function fetchTeams() {
+      try {
+        const response = await fetch(csvUrl);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const csvData = await response.text();
+        const rows = parseCSV(csvData);
+
+        const headers = rows[0].map(h => h.trim().toLowerCase());
+
+        const teamNameIndex = headers.findIndex(h => h.includes('team name'));
+        const lastNameIndex = headers.findIndex(h => h.includes('last name'));
+        const firstNameIndex = headers.findIndex(h => h.includes('first name'));
+        const middleNameIndex = headers.findIndex(h => h.includes('middle name'));
+        const parentalIndex = headers.findIndex(h => h.includes('parental'));
+
+        loadingMessage.style.display = 'none';
+
+        if (teamNameIndex === -1 || lastNameIndex === -1 || firstNameIndex === -1 || parentalIndex === -1) {
+          teamsContainer.innerHTML = '<p style="color:red;">Error: Missing required columns (Team Name, Last Name, First Name, Parental).</p>';
+          return;
+        }
+
+        const teams = {};
+
+        for (let i = 1; i < rows.length; i++) {
+          const cells = rows[i];
+          if (!cells.length) continue;
+
+          const rawTeamName = cells[teamNameIndex] || 'Unknown Team';
+          const teamKey = rawTeamName.trim().toLowerCase();
+
+          const lastName = cells[lastNameIndex] || '';
+          const firstName = cells[firstNameIndex] || '';
+          const middleName = middleNameIndex !== -1 ? (cells[middleNameIndex] || '') : '';
+          const parental = (cells[parentalIndex] || '').toLowerCase();
+
+          const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+
+          // Include only if Parental is not "Yes" and not "n/a"
+          if (parental !== 'yes' && parental !== 'n/a') {
+            if (!teams[teamKey]) {
+              teams[teamKey] = {
+                displayName: rawTeamName.trim(),
+                players: []
+              };
+            }
+            teams[teamKey].players.push(fullName);
+          }
+        }
+
+        // Render
+        for (const team of Object.values(teams)) {
+          const teamCard = document.createElement('div');
+          teamCard.classList.add('team-card');
+
+          let playersList = '<p><strong>Players Without Consent:</strong></p><ol>';
+          team.players.forEach(p => {
+            playersList += `<li>${p}</li>`;
+          });
+          playersList += '</ol>';
+
+          teamCard.innerHTML = `
+            <p><strong>Team Name:</strong> ${team.displayName}</p>
+            ${team.players.length ? playersList : '<p>All players have consent ✅</p>'}
+          `;
+          teamsContainer.appendChild(teamCard);
+        }
+
+      } catch (error) {
+        console.error('Error fetching or processing data:', error);
+        loadingMessage.style.display = 'none';
+        teamsContainer.innerHTML = '<p style="color:red;">Failed to load data. Please check the sheet link or your network connection.</p>';
+      }
+    }
+
+    fetchTeams();
+  </script>
+</body>
+</html>
