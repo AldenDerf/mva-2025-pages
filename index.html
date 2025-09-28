@@ -3,196 +3,94 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MVA Teams Data</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        background-color: #f4f4f4;
-        color: #333;
-      }
-      .container {
-        max-width: 800px;
-        margin: 0 auto;
-        background: #fff;
-        padding: 20px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-      }
-      h1 {
-        text-align: center;
-        color: #0056b3;
-        border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
-      }
-      .team-card {
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 15px;
-        margin-bottom: 15px;
-        background-color: #f9f9f9;
-      }
-      .team-card p {
-        margin: 5px 0;
-        font-size: 16px;
-      }
-      .team-card strong {
-        color: #555;
-      }
-      .team-card ol {
-        margin: 5px 0 0 20px;
-        padding: 0;
-      }
-    </style>
+    <title>MVA 2025 Dashboard</title>
+     <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff; /* White background */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    header {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    header .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header h1 {
+      color: #064e3b; /* Dark green */
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .btn-list {
+      width: 100%;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .btn-list a {
+      text-decoration: none;
+      width: 100%;
+    }
+    .btn-list button {
+      width: 100%;
+      padding: 15px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      background-color: #facc15; /* Yellow */
+      color: #064e3b; /* Dark green text */
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+      display: block;
+      text-align: center;
+    }
+    .btn-list button:hover {
+      background-color: #eab308;
+      transform: scale(1.03);
+    }
+    .btn-list button:active {
+      transform: scale(0.98);
+    }
+    img.logo {
+      width: 50px;
+      height: 50px;
+    }
+  </style>
   </head>
   <body>
-    <div class="container">
-      <h1>MVA Teams</h1>
-      <p id="loading-message">Loading team data...</p>
-      <div id="teams-container"></div>
+    <header>
+      <div class="logo-title">
+        <img
+          src="./image/MVA Official Logo.png"
+          class="logo"
+          alt="Your Embedded Google Drive Image" />
+        <h1>MVA 2025</h1>
+      </div>
+    </header>
+
+    <div class="btn-list">
+      <a href="./offical-team-list/"
+        ><button>List of players officially registered</button></a
+      >
+      <a href="./list-of-players-not-paid/index.html"
+        ><button>List of players not fully paid</button></a
+      >
+      <a href="./list-without-parental/index.html"
+        ><button>List of players without parental consent</button></a
+      >
+      <a href="./mva-2025-officers/index.html"><button>MVA Officers 2025</button></a>
     </div>
-
-    <script>
-      const csvUrl =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vS8PD9DkRa0NwKBOOrsK2k-zqnHr1sJiRSoaOCe5-3i459Wlre55Ysvx3kEUTFDQW2ln0eTGTnehQRw/pub?gid=1001005212&single=true&output=csv";
-      const teamsContainer = document.getElementById("teams-container");
-      const loadingMessage = document.getElementById("loading-message");
-
-      // Simple CSV parser
-      function parseCSV(text) {
-        const rows = [];
-        let currentRow = [];
-        let currentCell = "";
-        let insideQuotes = false;
-
-        for (let char of text) {
-          if (char === '"') {
-            insideQuotes = !insideQuotes;
-          } else if (char === "," && !insideQuotes) {
-            currentRow.push(currentCell.trim());
-            currentCell = "";
-          } else if ((char === "\n" || char === "\r") && !insideQuotes) {
-            if (currentCell || currentRow.length) {
-              currentRow.push(currentCell.trim());
-              rows.push(currentRow);
-              currentRow = [];
-              currentCell = "";
-            }
-          } else {
-            currentCell += char;
-          }
-        }
-        if (currentCell || currentRow.length) {
-          currentRow.push(currentCell.trim());
-          rows.push(currentRow);
-        }
-        return rows;
-      }
-
-      async function fetchTeams() {
-        try {
-          const response = await fetch(csvUrl);
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
-
-          const csvData = await response.text();
-          const rows = parseCSV(csvData);
-
-          const headers = rows[0].map((h) => h.trim().toLowerCase());
-
-          const teamNameIndex = headers.findIndex((h) =>
-            h.includes("team name")
-          );
-          const lastNameIndex = headers.findIndex((h) =>
-            h.includes("last name")
-          );
-          const firstNameIndex = headers.findIndex((h) =>
-            h.includes("first name")
-          );
-          const middleNameIndex = headers.findIndex((h) =>
-            h.includes("middle name")
-          );
-          const roleIndex = headers.findIndex((h) => h.includes("role"));
-
-          loadingMessage.style.display = "none";
-
-          if (
-            teamNameIndex === -1 ||
-            lastNameIndex === -1 ||
-            firstNameIndex === -1 ||
-            roleIndex === -1
-          ) {
-            teamsContainer.innerHTML =
-              '<p style="color:red;">Error: Missing required columns (Team Name, Last Name, First Name, Role).</p>';
-            return;
-          }
-
-          // Group rows by team name (case-insensitive)
-          const teams = {};
-
-          for (let i = 1; i < rows.length; i++) {
-            const cells = rows[i];
-            if (!cells.length) continue;
-
-            const rawTeamName = cells[teamNameIndex] || "Unknown Team";
-            const teamKey = rawTeamName.trim().toLowerCase(); // normalize
-
-            const lastName = cells[lastNameIndex] || "";
-            const firstName = cells[firstNameIndex] || "";
-            const middleName =
-              middleNameIndex !== -1 ? cells[middleNameIndex] || "" : "";
-            const role = cells[roleIndex] || "Member";
-
-            const fullName = [firstName, middleName, lastName]
-              .filter(Boolean)
-              .join(" ");
-
-            if (!teams[teamKey]) {
-              teams[teamKey] = {
-                displayName: rawTeamName.trim(),
-                leader: null,
-                members: [],
-              };
-            }
-
-            if (role.toLowerCase().includes("leader")) {
-              teams[teamKey].leader = fullName;
-            } else {
-              teams[teamKey].members.push(fullName);
-            }
-          }
-
-          // Render team cards
-          for (const team of Object.values(teams)) {
-            const teamCard = document.createElement("div");
-            teamCard.classList.add("team-card");
-
-            let membersList = "<p><strong>Members:</strong></p><ol>";
-            team.members.forEach((m) => {
-              membersList += `<li>${m}</li>`;
-            });
-            membersList += "</ol>";
-
-            teamCard.innerHTML = `
-            <p><strong>Team Name:</strong> ${team.displayName}</p>
-            <p><strong>Team Leader:</strong> ${team.leader || "N/A"}</p>
-            ${
-              team.members.length
-                ? membersList
-                : "<p><strong>Members:</strong> N/A</p>"
-            }
-          `;
-            teamsContainer.appendChild(teamCard);
-          }
-        } catch (error) {
-          console.error("Error fetching or processing data:", error);
-          loadingMessage.style.display = "none";
-          teamsContainer.innerHTML =
-            '<p style="color:red;">Failed to load team data. Please check the sheet link or your network connection.</p>';
-        }
-      }
-
-      fetchTeams();
-    </script>
   </body>
 </html>
